@@ -1,0 +1,8 @@
+fastapi
+python-dotenv
+openai
+ffmpeg-python
+uvicorn
+pydub
+srt
+audioop-lts 

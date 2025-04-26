@@ -6,3 +6,4 @@ uvicorn
 pydub
 srt
 audioop-lts 
+pydantic-settings

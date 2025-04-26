@@ -1,7 +1,10 @@
 import ffmpeg
 import logging
 import os
-import time # Use time directly instead of logging.time
+import time
+
+# Import settings
+from ..config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -16,18 +19,25 @@ def convert_to_wav(input_path: str, output_path: str):
     logger.info(f"Starting FFmpeg conversion: {input_path} -> {output_path}")
     start_time = time.time()
 
+    # Determine ffmpeg command path
+    ffmpeg_cmd = settings.FFMPEG_CMD or 'ffmpeg'
+    logger.info(f"Using FFmpeg command: {ffmpeg_cmd}")
+
     try:
         (
             ffmpeg
             .input(input_path)
             .output(output_path, ar=16000, ac=1, sample_fmt='s16', vn=None) # ar=16k, ac=1, sample_fmt=s16, no video
-            # Use quiet=False to see ffmpeg logs if needed, capture_stderr=True is important for error reporting
-            .run(cmd=['ffmpeg', '-nostdin'], capture_stdout=True, capture_stderr=True, quiet=True)
+            # Use quiet=False to see ffmpeg logs if needed
+            .run(cmd=[ffmpeg_cmd, '-nostdin'], capture_stdout=True, capture_stderr=True, quiet=True)
         )
     except ffmpeg.Error as e:
         stderr = e.stderr.decode('utf8', errors='ignore') if e.stderr else 'N/A'
         logger.error(f"FFmpeg Error during conversion: {e} - Stderr: {stderr}")
         raise FfmpegError("FFmpeg conversion failed.", stderr=stderr) from e
+    except FileNotFoundError:
+        logger.error(f"FFmpeg command '{ffmpeg_cmd}' not found. Check installation or FFMPEG_CMD setting.")
+        raise FfmpegError(f"FFmpeg command '{ffmpeg_cmd}' not found.")
     except Exception as e:
         logger.error(f"Unexpected error during FFmpeg conversion: {e}", exc_info=True)
         raise FfmpegError(f"Unexpected FFmpeg error: {e}") from e

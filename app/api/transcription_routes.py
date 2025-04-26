@@ -7,7 +7,7 @@ from pathlib import Path
 from fastapi import APIRouter, UploadFile, HTTPException, File, BackgroundTasks, Depends
 from fastapi.responses import PlainTextResponse
 
-# Adjust relative imports based on the final structure
+from ..config import settings
 from ..services.transcription_service import (
     process_and_transcribe,
     TranscriptionError,
@@ -15,27 +15,21 @@ from ..services.transcription_service import (
     ChunkingError
 )
 from ..utils.ffmpeg_utils import convert_to_wav, FfmpegError
-from ..utils.file_utils import cleanup_temp_file
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-# --- Dependency for API Key --- (Optional but good practice)
-def get_api_key():
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        logger.error("OPENAI_API_KEY is not set in the environment.")
-        raise HTTPException(status_code=500, detail="Server configuration error: Missing API key.")
-    return api_key
 
 # --- Transcription Endpoint ---
 @router.post("/transcribe", response_class=PlainTextResponse)
 async def transcribe_audio_endpoint(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
-    api_key: str = Depends(get_api_key)
 ):
     """Accepts an audio/video file, processes it, transcribes, and returns SRT."""
+    if not settings.OPENAI_API_KEY or settings.OPENAI_API_KEY == "YOUR_OPENAI_API_KEY_HERE":
+        logger.error("OPENAI_API_KEY is not configured in settings.")
+        raise HTTPException(status_code=500, detail="Server configuration error: Missing API key.")
+
     logger.info("Received request on /api/transcribe")
     logger.info(f"Uploaded file details: filename='{file.filename}', content_type='{file.content_type}'")
 
@@ -84,7 +78,7 @@ async def transcribe_audio_endpoint(
 
         # 3. Transcribe using the Service
         try:
-            srt_content = await process_and_transcribe(converted_audio_path, api_key, temp_dir)
+            srt_content = await process_and_transcribe(converted_audio_path)
         except OpenAIError as e:
             logger.error(f"OpenAI error handled in route: Status={e.status_code} Message={e}")
             raise HTTPException(status_code=e.status_code or 500, detail=str(e))

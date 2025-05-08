@@ -1,0 +1,20 @@
+schemaVersion: 2.0.0
+metadataTest:
+  labels:
+    - key: 'maintainer'
+      value: 'Straker Group'
+    - key: 'repository'
+      value: 'https://github.com/strakergroup/sup-transcriber-api'
+  workdir: "/app"
+  user: "straker"
+fileExistenceTests:
+- name: 'main.py'
+  path: '/app/src/main.py'
+  shouldExist: true
+  permissions: '-rw-r--r--'
+  uid: 1001
+  gid: 33
+commandTests:
+  - name: "test-user"
+    command: "whoami"
+    expectedOutput: ["straker"]

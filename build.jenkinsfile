@@ -1,0 +1,78 @@
+pipeline {
+  agent {
+    kubernetes {
+      yaml '''
+apiVersion: v1
+kind: Pod
+metadata:
+  name: build-pod
+  labels:
+    app: container-builder
+spec:
+  containers:
+  - name: container-builder
+    image: strakertranslations/tools-container_buildah:latest
+    imagePullPolicy: Always
+    securityContext:
+      privileged: true
+      runAsUser: 0
+    tty: true
+        '''
+    }
+  }
+  stages {
+    stage('git tasks') {
+      steps {
+        container('container-builder') {
+          sh(script: """
+echo "${DOCKER_PASSWORD}" | buildah login -u strakertranslations --password-stdin docker.io
+GIT_SSH_COMMAND="ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" git clone --branch ${BRANCH} --single-branch git@github.com:$REPO /root/container-build/${APPLICATION}/
+          """)
+        }
+      }
+    }
+    stage('build container') {
+      steps {
+        container('container-builder') {
+          sh(script: '''
+cd /root/container-build/${APPLICATION}/
+GITTAG=$(git rev-parse --short=7 HEAD)
+buildah build --no-cache -t strakertech/${APPLICATION}:$TAG-latest -t strakertech/${APPLICATION}:$TAG-$GITTAG .
+          ''')
+        }
+      }
+    }
+    stage('structure tests') {
+      steps {
+        container('container-builder') {
+          sh(script: '''
+cd /root/container-build/${APPLICATION}
+GITTAG=$(git rev-parse --short=7 HEAD)
+podman system service --time=0 unix:///tmp/podman.sock &
+export DOCKER_HOST=unix:///tmp/podman.sock
+
+curl -LO https://github.com/GoogleContainerTools/container-structure-test/releases/latest/download/container-structure-test-linux-amd64 && chmod +x container-structure-test-linux-amd64 && mkdir -p $HOME/bin && export PATH=$PATH:$HOME/bin && mv container-structure-test-linux-amd64 $HOME/bin/container-structure-test
+
+container-structure-test test \
+    --driver docker \
+    --image strakertech/${APPLICATION}:$TAG-$GITTAG \
+    --config /root/container-build/${APPLICATION}/build-tests.yaml 
+
+          ''')
+        }
+      }
+    }
+    stage('push container') {
+      steps {
+        container('container-builder') {
+          sh(script: '''
+GITTAG=$(git rev-parse --short=7 HEAD)
+buildah push --format docker strakertech/${APPLICATION}:$TAG-latest
+buildah push --format docker strakertech/${APPLICATION}:$TAG-$GITTAG
+echo "I made it to the end, container built, and pushed to dockerhub."
+          ''')
+        }
+      }
+    }
+  }
+}

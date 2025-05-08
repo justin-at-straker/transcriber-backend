@@ -1,0 +1,28 @@
+services:
+  sup-transcription-api:
+    container_name: local-sup-transcription-api
+    build:
+      dockerfile: Dockerfile
+    volumes:
+      - ./src:/app/src
+      - ./.env:/app/.env
+      - data-dir:/mnt/data
+    ports:
+      - "9000:80"
+    env_file:
+      - .env
+    networks:
+      local-straker:
+        ipv4_address: 172.20.0.41
+    extra_hosts:
+      local-buglog.strakergroup.com: 172.17.0.1
+
+networks:
+  local-straker:
+    name: development_local-straker
+    external: true
+
+volumes:
+  data-dir:
+    name: development_data-dir
+    external: true

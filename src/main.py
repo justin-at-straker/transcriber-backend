@@ -48,7 +48,7 @@ async def start_consumer():
         consumer_group,
         consumer_name,
         streams=[
-            "transcription:media:asr",
+            "transcription:media:asr:v2",
         ]
     )
 

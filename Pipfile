@@ -1,0 +1,43 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[[source]]
+url = "https://mgmt-k8s-pypi-fra02.straker.io/simple"
+verify_ssl = false
+name = "straker"
+
+[packages]
+fastapi = "*"
+uvicorn = "*"
+python-multipart = "*"
+redis = "*"
+pydantic = "*"
+pydantic-settings = "*"
+straker-utils = {version = "==0.2.5", index = "straker"}
+straker-redis-streams = {version = "==0.1.2", index = "straker"}
+buglog = {version = "==0.1.4", index = "straker"}
+python-dotenv = "*"
+requests = "*"
+openai = "*"
+sqlalchemy = "*"
+mysql-connector-python = "*"
+ffmpeg-python = "*"
+psutil = "*"
+slack-sdk = "*"
+aiohttp = "*"
+
+[dev-packages]
+black = "*"
+isort = "*"
+mypy = "*"
+pylint = "*"
+types-redis = "*"
+sqlalchemy-stubs = "*"
+
+[requires]
+python_version = "3.12"
+
+[scripts]
+api = "uvicorn src.main:app --reload --port 9000"
